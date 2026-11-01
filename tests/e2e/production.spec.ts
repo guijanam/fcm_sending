@@ -8,7 +8,14 @@ test('production build serves assets and public config under the GitHub Pages su
   expect(html).not.toContain('/@vite/client');
   expect(html).not.toContain('/src/main.tsx');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  const scripts = await page.locator('script[src]').evaluateAll(nodes => nodes.map(node => (node as HTMLScriptElement).src));
+  // Provider SDKs may insert external scripts; they are not app build assets.
+  await page.evaluate(() => {
+    const script = document.createElement('script');
+    script.type = 'application/json';
+    script.src = 'https://example.invalid/test-only-provider.js';
+    document.head.append(script);
+  });
+  const scripts = await page.locator('script[src]').evaluateAll(nodes => nodes.map(node => (node as HTMLScriptElement).src).filter(src => new URL(src).origin === location.origin));
   expect(scripts.length).toBeGreaterThan(0);
   for (const src of scripts) {
     expect(src).toContain('/fcm_sending/assets/');
