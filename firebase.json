@@ -1,0 +1,17 @@
+{
+  "functions": [{
+    "source": "functions",
+    "codebase": "fcm-admin",
+    "runtime": "nodejs22",
+    "ignore": ["node_modules", ".git", "*.log", "test", "coverage", ".env.example"],
+    "predeploy": ["npm --prefix \"$RESOURCE_DIR\" test"]
+  }],
+  "firestore": [{ "database": "fcm-admin", "rules": "firestore.rules", "indexes": "firestore.indexes.json" }],
+  "emulators": {
+    "auth": { "port": 9099, "host": "127.0.0.1" },
+    "functions": { "port": 5001, "host": "127.0.0.1" },
+    "firestore": { "port": 8080, "host": "127.0.0.1" },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

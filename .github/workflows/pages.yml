@@ -1,0 +1,66 @@
+name: Verify and deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix functions
+      - run: node --test scripts/config.test.mjs
+      - run: npm test
+      - run: npm run test:server
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Verify Firestore security rules in emulator (no live project)
+        run: npm run test:emulator
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --prefix functions --omit=dev --audit-level=high
+      - run: node scripts/prepare-config.mjs
+        env:
+          FIREBASE_WEB_CONFIG: ${{ vars.FIREBASE_WEB_CONFIG }}
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: dist
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

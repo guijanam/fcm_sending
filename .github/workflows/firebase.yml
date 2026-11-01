@@ -1,0 +1,66 @@
+name: Deploy Firebase backend (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.repository == 'guijanam/fcm_sending' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: firebase-production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - name: Require explicit production configuration
+        env:
+          PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+        run: |
+          test -n "$PROVIDER" || { echo 'Configure GCP_WORKLOAD_IDENTITY_PROVIDER first. See docs/DEPLOY.md'; exit 1; }
+          test -n "$ACCOUNT" || { echo 'Configure GCP_SERVICE_ACCOUNT first. See docs/DEPLOY.md'; exit 1; }
+          test -n "$ADMIN_EMAIL" || { echo 'Configure ADMIN_EMAIL secret first.'; exit 1; }
+      - run: npm ci && npm ci --prefix functions
+      - run: node --test scripts/config.test.mjs && npm run test:server
+      - run: npm audit --prefix functions --omit=dev --audit-level=high
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          project_id: mydia-29ac2
+          create_credentials_file: true
+      - name: Configure administrator (never bundled with frontend)
+        env:
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_UID: ${{ secrets.ADMIN_UID }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          const email = process.env.ADMIN_EMAIL?.trim();
+          const uid = process.env.ADMIN_UID?.trim() || '';
+          if (!email || /[\r\n]/.test(email + uid)) throw new Error('Invalid administrator configuration');
+          writeFileSync('functions/.env.mydia-29ac2', `ADMIN_EMAIL=${JSON.stringify(email)}\nADMIN_UID=${JSON.stringify(uid)}\n`);
+          NODE
+      - name: Deploy only isolated admin database rules and FCM admin functions
+        run: npx firebase deploy --project mydia-29ac2 --only firestore:rules,functions:fcm-admin --non-interactive
+      - name: Verify deployed function names
+        run: npx firebase functions:list --project mydia-29ac2
+      - name: Remove local administrator configuration
+        if: always()
+        run: rm -f functions/.env.mydia-29ac2
