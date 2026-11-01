@@ -33,6 +33,10 @@ beforeEach(() => {
     vi.fn(async () => ({ ok: true, json: async () => config })),
   );
 });
+it("exposes backend deployment readiness without treating public config as server readiness", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => ({ok:true, json:async () => ({...config, backendReady:false})})));
+  expect(await loadApi()).toMatchObject({backendReady:false});
+});
 it("fetches relative public config without cache", async () => {
   await loadApi();
   expect(fetch).toHaveBeenCalledWith(

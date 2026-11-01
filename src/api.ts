@@ -21,6 +21,7 @@ export type SendResult = {
   duplicate?: boolean;
 };
 export interface AdminApi {
+  readonly backendReady?: boolean;
   subscribe(
     listener: (user: Identity | null) => void,
     error: (error: unknown) => void,

@@ -26,6 +26,18 @@ function apiMock(overrides: Partial<AdminApi> = {}) {
   return api;
 }
 describe("access boundaries", () => {
+  it("shows a real backend-pending state without login, authorization calls or sending", () => {
+    const api = apiMock({backendReady:false});
+    render(<App api={api} />);
+    expect(screen.getByRole("heading", {name:"발송 서버 배포 대기"})).toBeVisible();
+    expect(screen.getByText(/웹 앱 설정은 연결되었습니다/)).toBeVisible();
+    expect(screen.queryByRole("button", {name:"Google로 로그인"})).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(api.subscribe).not.toHaveBeenCalled();
+    expect(api.status).not.toHaveBeenCalled();
+    expect(api.list).not.toHaveBeenCalled();
+    expect(api.send).not.toHaveBeenCalled();
+  });
   it("shows actionable setup rather than a pretend dashboard without config", () => {
     render(<App api={null} />);
     expect(

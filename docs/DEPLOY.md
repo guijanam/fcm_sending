@@ -14,7 +14,8 @@ Firebase 콘솔 → `mydia-29ac2` → 프로젝트 설정 → 일반 → **앱 �
   "authDomain": "mydia-29ac2.firebaseapp.com",
   "projectId": "mydia-29ac2",
   "messagingSenderId": "188406916055",
-  "appId": "1:188406916055:web:실제웹앱ID"
+  "appId": "1:188406916055:web:실제웹앱ID",
+  "backendReady": false
 }
 ```
 
@@ -104,6 +105,14 @@ https://guijanam.github.io/fcm_sending/
 ```
 
 `FIREBASE_WEB_CONFIG` 변수를 추가/수정했다면 **워크플로를 다시 실행**해야 반영됩니다. 설정이 없으면 배포 자체는 성공하되 잠긴 초기 설정 화면을 보여 줍니다.
+
+### 요금제 전환을 나중에 할 때
+
+웹 설정만 먼저 연결하고 `backendReady: false`를 유지하세요. 사이트에는 **발송 서버 배포 대기**가 표시되고, 로그인·발송·기록 조회가 비활성화됩니다. 이 값이 없으면 빌드 유틸리티가 기본값 `false`를 추가합니다. 웹 설정 연결은 서버 배포나 관리자 인증 성공을 뜻하지 않습니다.
+
+나중에 Google 로그인 설정, 전용 데이터베이스/런타임 계정, 함수 배포를 완료한 뒤 GitHub 변수 `FIREBASE_WEB_CONFIG` JSON의 **`backendReady`를 `true`로 변경하고 Pages 워크플로를 다시 실행**하세요. 이 표시는 UI 운영 상태를 위한 것이며, 서버의 관리자 권한 검증을 대신하지 않습니다.
+
+Firebase Authentication이 아직 초기화되지 않아 `CONFIGURATION_NOT_FOUND`가 반환되면 Firebase 콘솔 → Authentication → 시작하기 → Google 로그인을 설정하세요. 결제를 요구하는 Identity Platform 초기화/업그레이드 API로 우회하지 마세요. 승인된 도메인에는 기존 값을 유지하면서 `guijanam.github.io`와 필요 시 `localhost`를 추가합니다.
 
 ## 6. 서버도 GitHub에서 배포하기 (선택, 최초 준비 이후)
 

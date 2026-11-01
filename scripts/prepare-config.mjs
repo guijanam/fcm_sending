@@ -11,7 +11,9 @@ export function publicConfig(value) {
   if (value.projectId !== 'mydia-29ac2' || value.authDomain !== 'mydia-29ac2.firebaseapp.com' || value.messagingSenderId !== '188406916055' || !/^1:188406916055:web:[a-zA-Z0-9]+$/.test(value.appId)) {
     throw new Error('mydia-29ac2 프로젝트에 등록한 웹 앱의 설정을 사용하세요. Android 앱 설정은 사용할 수 없습니다.');
   }
+  if (value.backendReady !== undefined && typeof value.backendReady !== 'boolean') throw new Error('backendReady는 true 또는 false여야 합니다.');
   return {
+    backendReady: value.backendReady === true,
     apiKey: value.apiKey,
     authDomain: value.authDomain,
     projectId: value.projectId,

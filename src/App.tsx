@@ -24,7 +24,7 @@ export default function App({ api }: { api?: AdminApi | null }) {
   const [busy, setBusy] = useState(false);
   const generation = useRef(0);
   useEffect(() => {
-    if (!api) return;
+    if (!api || api.backendReady === false) return;
     return api.subscribe(
       (u) => {
         const g = ++generation.current;
@@ -62,7 +62,7 @@ export default function App({ api }: { api?: AdminApi | null }) {
     );
   }, [api]);
   async function account(action: "login" | "logout") {
-    if (!api || busy) return;
+    if (!api || api.backendReady === false || busy) return;
     setBusy(true);
     setError("");
     if (action === "logout") {
@@ -102,6 +102,8 @@ export default function App({ api }: { api?: AdminApi | null }) {
       <main className="page">
         {!api ? (
           <Setup />
+        ) : api.backendReady === false ? (
+          <BackendPending />
         ) : phase === "allowed" ? (
           <Editor key={user?.uid} api={api} />
         ) : (
@@ -151,6 +153,29 @@ export default function App({ api }: { api?: AdminApi | null }) {
         내근무 알림 센터 <span>·</span> 필요한 소식을, 정확하게.
       </footer>
     </>
+  );
+}
+function BackendPending() {
+  return (
+    <div className="setup-grid">
+      <section className="card setup-card">
+        <span className="eyebrow"><span className="status-dot" /> 웹 앱 연결 완료 · 운영 대기</span>
+        <h1>발송 서버 배포 대기</h1>
+        <p className="lead">웹페이지 준비는 마쳤습니다.<br />발송 기능은 나중에 연결하세요.</p>
+        <p>Firebase 웹 앱 설정은 연결되었습니다. 요금제 변경과 발송 서버 배포는 보류 중입니다.</p>
+        <ol className="setup-steps">
+          <li><strong>완료 · 웹페이지와 Firebase 웹 설정</strong><p>GitHub Pages와 mydia-29ac2 프로젝트의 웹 앱이 연결되었습니다.</p></li>
+          <li><strong>남은 작업 · Google 로그인과 서버 배포</strong><p>Firebase Authentication의 Google 로그인 설정과 관리자 전용 발송 서버 배포가 필요합니다. 결제 및 요금제 설정은 변경하지 않았습니다.</p></li>
+          <li><strong>마지막 단계 · 운영 모드 전환</strong><p>서버 배포와 관리자 권한 검증을 마친 뒤 배포 설정의 <code>backendReady</code>를 <code>true</code>로 바꾸고 재배포하세요.</p></li>
+        </ol>
+        <div className="notice">현재 로그인·발송·발송 기록 조회는 비활성 상태입니다. 실제 알림은 전송되지 않습니다.</div>
+        <p><a href="https://github.com/guijanam/fcm_sending/blob/main/docs/DEPLOY.md" target="_blank" rel="noopener noreferrer">나중에 연결하기 · 설정 안내 보기 ↗</a></p>
+      </section>
+      <aside className="setup-aside">
+        <NotificationPreview title="서버 연결 후 공지를 작성하세요" body="알림 미리보기입니다. 현재 실제 발송 기능은 비활성 상태입니다." />
+        <div className="aside-copy"><span className="eyebrow">READY WHEN YOU ARE</span><h2>웹 준비는 지금.<br />발송 연결은 나중에.</h2><p>고정 발송 대상: documents 토픽<br />관리자 확인 후에만 발송</p></div>
+      </aside>
+    </div>
   );
 }
 function Setup() {

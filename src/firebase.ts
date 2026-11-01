@@ -34,6 +34,7 @@ export async function loadApi(): Promise<AdminApi | null> {
       );
     await setPersistence(auth, browserLocalPersistence);
     return {
+      backendReady: config.backendReady !== false,
       subscribe: (listener, error) =>
         onAuthStateChanged(
           auth,
